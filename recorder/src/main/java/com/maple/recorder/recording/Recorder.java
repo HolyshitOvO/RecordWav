@@ -11,7 +11,7 @@ package com.maple.recorder.recording;
 public interface Recorder {
 
     /**
-     * 开始，请确保当前app有 RECORD_AUDIO 权限
+     * 开始
      */
     void startRecording();
 
@@ -29,5 +29,6 @@ public interface Recorder {
      * 停止
      */
     void stopRecording();
+
 
 }

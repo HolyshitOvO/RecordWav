@@ -1,13 +1,16 @@
 package com.maple.recorder.recording;
 
 import android.media.AudioRecord;
+import android.os.Build;
 
 import androidx.annotation.RequiresPermission;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -18,57 +21,59 @@ import java.util.concurrent.Executors;
  * @time 2018/4/10.
  */
 public class BaseDataRecorder implements Recorder {
-    protected File file;
-    protected AudioRecordConfig config;
     protected PullTransport pullTransport;
-    protected int bufferSizeInBytes;// 缓冲区大小
+    protected AudioRecordConfig config;
+    protected int pullSizeInBytes;// 缓冲区大小
+    protected File file;
+
     private AudioRecord audioRecord;
     private OutputStream outputStream;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final Runnable recordingTask = new Runnable() {
+        @Override
+        @RequiresPermission(android.Manifest.permission.RECORD_AUDIO)
+        public void run() {
+            startRecord();
+        }
+    };
 
-    @RequiresPermission(android.Manifest.permission.RECORD_AUDIO)
-    protected BaseDataRecorder(File file, AudioRecordConfig config, PullTransport pullTransport) throws IllegalArgumentException {
+    protected BaseDataRecorder(File file, AudioRecordConfig config, PullTransport pullTransport) {
         this.file = file;
         this.config = config;
         this.pullTransport = pullTransport;
         // 计算缓冲区大小
-        this.bufferSizeInBytes = AudioRecord.getMinBufferSize(
-                config.getSampleRateInHz(),
-                config.getChannelConfig(),
-                config.getAudioFormat()
+        this.pullSizeInBytes = AudioRecord.getMinBufferSize(
+                config.frequency(),
+                config.channelPositionMask(),
+                config.audioEncoding()
         );
-        if (audioRecord == null) {
-            audioRecord = new AudioRecord(config.getAudioSource(), config.getSampleRateInHz(),
-                    config.getChannelConfig(), config.getAudioFormat(), bufferSizeInBytes);
-        }
-        if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
-            throw new IllegalStateException("AudioRecord 初始化失败，请检查是否有RECORD_AUDIO权限。" +
-                    "或者使用了系统APP才能用的配置项（MediaRecorder.AudioSource.REMOTE_SUBMIX 等），" +
-                    "或者使用了该设备不支持的配置项。");
+    }
+
+    @RequiresPermission(android.Manifest.permission.RECORD_AUDIO)
+    private void startRecord() {
+        try {
+            if (audioRecord == null) {
+                audioRecord = new AudioRecord(config.audioSource(), config.frequency(),
+                        config.channelPositionMask(), config.audioEncoding(), pullSizeInBytes);
+            }
+            if (outputStream == null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    outputStream = Files.newOutputStream(file.toPath());
+                }else{
+                    outputStream = new FileOutputStream(file);
+                }
+            }
+            audioRecord.startRecording();
+            pullTransport.isEnableToBePulled(true);
+            pullTransport.startPoolingAndWriting(audioRecord, pullSizeInBytes, outputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     public void startRecording() {
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                startRecord();
-            }
-        });
-    }
-
-    private void startRecord() {
-        try {
-            if (outputStream == null) {
-                outputStream = new FileOutputStream(file);
-            }
-            audioRecord.startRecording();
-            pullTransport.isEnableToBePulled(true);
-            pullTransport.startPoolingAndWriting(audioRecord, bufferSizeInBytes, outputStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        executorService.submit(recordingTask);
     }
 
     @Override

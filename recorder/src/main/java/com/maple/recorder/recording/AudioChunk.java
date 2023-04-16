@@ -32,11 +32,7 @@ public interface AudioChunk {
                     nMaxAmp = sh;
                 }
             }
-            if (nMaxAmp > 0) {
-                return Math.abs(20 * Math.log10(nMaxAmp / REFERENCE));
-            } else {
-                return 0;
-            }
+            return (int) (20 * Math.log10(nMaxAmp / REFERENCE));
         }
     }
 
@@ -44,7 +40,7 @@ public interface AudioChunk {
      * byte类型数据包装器
      */
     class Bytes extends AbstractAudioChunk {
-        private final byte[] bytes;
+        private byte[] bytes;
 
         Bytes(byte[] bytes) {
             this.bytes = bytes;
@@ -68,7 +64,7 @@ public interface AudioChunk {
      */
     class Shorts extends AbstractAudioChunk {
         private static final short SILENCE_THRESHOLD = 2700;// 沉默阀值（低于该值的不记录）
-        private final short[] shorts;
+        private short[] shorts;
 
         Shorts(short[] bytes) {
             this.shorts = bytes;

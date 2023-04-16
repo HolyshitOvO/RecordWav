@@ -17,10 +17,9 @@ public class PlayUtils {
         void onPlayStateChange(boolean isPlay);
     }
 
-    public PlayUtils setPlayStateChangeListener(PlayStateChangeListener listener) {
+    public void setPlayStateChangeListener(PlayStateChangeListener listener) {
         this.playStateChangeListener = listener;
         this.playStateChangeListener.onPlayStateChange(false);
-        return this;
     }
 
     /**
