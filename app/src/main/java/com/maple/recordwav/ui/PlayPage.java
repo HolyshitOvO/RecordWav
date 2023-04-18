@@ -1,6 +1,7 @@
 package com.maple.recordwav.ui;
 
-
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import com.maple.recorder.player.PlayDialog;
 import com.maple.recorder.player.PlayUtils;
 import com.maple.recordwav.R;
 import com.maple.recordwav.WavApp;
+import com.maple.recordwav.utils.tools;
 import com.maple.recordwav.base.BaseFragment;
 import com.maple.recordwav.utils.LoadingDialog;
 import com.maple.recordwav.utils.SearchFileUtils;
@@ -87,17 +89,37 @@ public class PlayPage extends BaseFragment {
         lv_wav.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String filePath = wavFileList.get(position);
-                File file = new File(filePath);
-                if (file.exists()) {
-                    dialogPlay(file);
-                } else {
-                    T.showShort(mContext, "选择的文件不存在");
-                }
+
+                new AlertDialog.Builder(getActivity())
+                        .setSingleChoiceItems(new String[]{"播放","转码"},-1,new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog,int which) {
+                                if(which==0){
+                                    clickPlay(position);
+
+
+
+
+                                }else {
+                                    tools.audioToAAC(wavFileList.get(position),-1,-1);
+                                }
+                                dialog.dismiss();
+                            }
+                        })
+                        .create()
+                        .show();
             }
         });
     }
-
+    private void clickPlay(int position) {
+        String filePath = wavFileList.get(position);
+        File file = new File(filePath);
+        if (file.exists()) {
+            dialogPlay(file);
+        } else {
+            T.showShort(mContext, "选择的文件不存在");
+        }
+    }
 
     Runnable searchSong = new Runnable() {
         @Override

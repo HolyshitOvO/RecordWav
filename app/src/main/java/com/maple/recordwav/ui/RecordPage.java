@@ -1,5 +1,7 @@
 package com.maple.recordwav.ui;
 
+import android.media.AudioFormat;
+import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -31,187 +33,181 @@ import java.io.File;
  * @time 16/4/18 下午2:53
  */
 public class RecordPage extends BaseFragment {
-    // @BindView(R.id.iv_voice_img) ImageView iv_voice_img;
-    // @BindView(R.id.com_voice_time) Chronometer com_voice_time;
-    // @BindView(R.id.bt_start) Button bt_start;
-    // @BindView(R.id.bt_stop) Button bt_stop;
-    // @BindView(R.id.bt_pause_resume) Button bt_pause_resume;
-    // @BindView(R.id.skipSilence) CheckBox skipSilence;
-    private ImageView iv_voice_img;
-    private Chronometer com_voice_time;
-    private Button bt_start;
-    private Button bt_pause_resume;
-    private Button bt_stop;
-    private CheckBox skipSilence;
 
-    private Recorder recorder;
-    private boolean isRecording = false;
-    private long curBase = 0;
-    private String voicePath = WavApp.saveFile + "/voice.wav";
+	private ImageView ivVoiceImg;
+	private Chronometer comVoiceTime;
+	private Button btStart;
+	private Button btPauseResume;
+	private Button btStop;
+	private CheckBox skipSilence;
 
+	private boolean isRecording = false;
+	private long curBase = 0;
+	private String voicePath = WavApp.rootPath + "/voice.wav";
 
-    @Override
-    public View initView(LayoutInflater inflater) {
-        view = inflater.inflate(R.layout.fragment_record, null);
-        if (view != null) {
-            initView();
-        }
-        return view;
-    }
+	private Recorder recorder;
 
-    @Override
-    public void initData(Bundle savedInstanceState) {
-        String name = "wav-" + DateUtils.date2Str("yyyy-MM-dd-HH-mm-ss");
-        voicePath = WavApp.saveFile + name + ".wav";
+	@Override
+	public View initView(LayoutInflater inflater) {
+		view = inflater.inflate(R.layout.fragment_record, null);
+		if (view != null) {
+			initView();
+		}
+		return view;
+	}
+	private void initView() {
+		ivVoiceImg = view.findViewById(R.id.iv_voice_img);
+		comVoiceTime = view.findViewById(R.id.com_voice_time);
+		btStart = view.findViewById(R.id.bt_start);
+		btPauseResume = view.findViewById(R.id.bt_pause_resume);
+		btStop = view.findViewById(R.id.bt_stop);
+		skipSilence = view.findViewById(R.id.skipSilence);
+	}
 
-        setupRecorder();
-        bt_start.setText(getString(R.string.record));
-        bt_pause_resume.setText(getString(R.string.pause));
-        bt_stop.setText(getString(R.string.stop));
-        bt_pause_resume.setEnabled(false);
-        bt_stop.setEnabled(false);
-    }
+	@Override
+	public void initData(Bundle savedInstanceState) {
+		String name = "wav-" + DateUtils.date2Str("yyyy-MM-dd-HH-mm-ss");
+		voicePath = WavApp.rootPath + name + ".wav";
 
-    @Override
-    public void initListener() {
-        skipSilence.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-                if (isChecked) {
-                    setupNoiseRecorder();
-                } else {
-                    setupRecorder();
-                }
-            }
-        });
-        bt_start.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                recorder.startRecording();
+		setupRecorder();
+		btStart.setText(getString(R.string.record));
+		btPauseResume.setText(getString(R.string.pause));
+		btStop.setText(getString(R.string.stop));
+		btPauseResume.setEnabled(false);
+		btStop.setEnabled(false);
+	}
 
-                isRecording = true;
-                skipSilence.setEnabled(false);
-                bt_start.setEnabled(false);
-                bt_pause_resume.setEnabled(true);
-                bt_stop.setEnabled(true);
-                iv_voice_img.setImageResource(R.drawable.mic_selected);
-                com_voice_time.setBase(SystemClock.elapsedRealtime());
-                com_voice_time.start();
-            }
-        });
-        bt_stop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                recorder.stopRecording();
+	@Override
+	public void initListener() {
+		skipSilence.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+				if (isChecked) {
+					setupNoiseRecorder();
+				} else {
+					setupRecorder();
+				}
+			}
+		});
+		btStart.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				recorder.startRecording();
 
-                isRecording = false;
-                skipSilence.setEnabled(true);
-                bt_start.setEnabled(true);
-                bt_pause_resume.setEnabled(false);
-                bt_stop.setEnabled(false);
-                bt_pause_resume.setText(getString(R.string.pause));
-                iv_voice_img.setImageResource(R.drawable.mic_default);
-                com_voice_time.stop();
-                curBase = 0;
-                bt_stop.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        animateVoice(0);
-                    }
-                });
-            }
-        });
-        bt_pause_resume.setOnClickListener(new View.OnClickListener() {
+				isRecording = true;
+				skipSilence.setEnabled(false);
+				btStart.setEnabled(false);
+				btPauseResume.setEnabled(true);
+				btStop.setEnabled(true);
+				ivVoiceImg.setImageResource(R.drawable.mic_selected);
+				comVoiceTime.setBase(SystemClock.elapsedRealtime());
+				comVoiceTime.start();
+			}
+		});
+		btStop.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				recorder.stopRecording();
 
-            @Override
-            public void onClick(View view) {
-                if (isRecording) {
-                    recorder.pauseRecording();
+				isRecording = false;
+				skipSilence.setEnabled(true);
+				btStart.setEnabled(true);
+				btPauseResume.setEnabled(false);
+				btStop.setEnabled(false);
+				btPauseResume.setText(getString(R.string.pause));
+				ivVoiceImg.setImageResource(R.drawable.mic_default);
+				comVoiceTime.stop();
+				curBase = 0;
+				btStop.post(new Runnable() {
+					@Override
+					public void run() {
+						animateVoice(0);
+					}
+				});
+			}
+		});
+		btPauseResume.setOnClickListener(new View.OnClickListener() {
 
-                    isRecording = false;
-                    bt_pause_resume.setText(getString(R.string.resume));
-                    curBase = SystemClock.elapsedRealtime() - com_voice_time.getBase();
-                    com_voice_time.stop();
-                    iv_voice_img.setImageResource(R.drawable.mic_default);
-                    bt_pause_resume.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            animateVoice(0);
-                        }
-                    }, 100);
-                } else {
-                    recorder.resumeRecording();
+			@Override
+			public void onClick(View view) {
+				if (isRecording) {
+					recorder.pauseRecording();
 
-                    isRecording = true;
-                    bt_pause_resume.setText(getString(R.string.pause));
-                    com_voice_time.setBase(SystemClock.elapsedRealtime() - curBase);
-                    com_voice_time.start();
-                    iv_voice_img.setImageResource(R.drawable.mic_selected);
-                }
-            }
-        });
+					isRecording = false;
+					btPauseResume.setText(getString(R.string.resume));
+					curBase = SystemClock.elapsedRealtime() - comVoiceTime.getBase();
+					comVoiceTime.stop();
+					ivVoiceImg.setImageResource(R.drawable.mic_default);
+					btPauseResume.postDelayed(new Runnable() {
+						@Override
+						public void run() {
+							animateVoice(0);
+						}
+					}, 100);
+				} else {
+					recorder.resumeRecording();
 
-    }
+					isRecording = true;
+					btPauseResume.setText(getString(R.string.pause));
+					comVoiceTime.setBase(SystemClock.elapsedRealtime() - curBase);
+					comVoiceTime.start();
+					ivVoiceImg.setImageResource(R.drawable.mic_selected);
+				}
+			}
+		});
 
-    private void setupRecorder() {
-        recorder = MsRecorder.wav(
-                new File(voicePath),
-                new AudioRecordConfig.Default(),
-                new PullTransport.Default()
-                        .setOnAudioChunkPulledListener(new PullTransport.OnAudioChunkPulledListener() {
-                            @Override
-                            public void onAudioChunkPulled(AudioChunk audioChunk) {
-                                Log.e("max  ", "amplitude: " + audioChunk.maxAmplitude());
-                                animateVoice((float) (audioChunk.maxAmplitude() / 200.0));
-                            }
-                        })
+	}
 
-        );
-    }
+	private void setupRecorder() {
+		recorder = MsRecorder.wav(
+				new File(voicePath),
+				new AudioRecordConfig.Default(),
+				new PullTransport.Default()
+						.setOnAudioChunkPulledListener(new PullTransport.OnAudioChunkPulledListener() {
+							@Override
+							public void onAudioChunkPulled(AudioChunk audioChunk) {
+								Log.e("max  ", "amplitude: " + audioChunk.maxAmplitude());
+								animateVoice((float) (audioChunk.maxAmplitude() / 200.0));
+							}
+						})
+		);
+	}
 
-    private void setupNoiseRecorder() {
-        recorder = MsRecorder.wav(
-                new File(voicePath),
-                new AudioRecordConfig.Default(),
-                new PullTransport.Noise()
-                        .setOnAudioChunkPulledListener(new PullTransport.OnAudioChunkPulledListener() {
-                            @Override
-                            public void onAudioChunkPulled(AudioChunk audioChunk) {
-                                animateVoice((float) (audioChunk.maxAmplitude() / 200.0));
-                            }
-                        })
-                        .setOnSilenceListener(new PullTransport.OnSilenceListener() {
-                            @Override
-                            public void onSilence(long silenceTime, long discardTime) {
-                                String message = "沉默时间：" + String.valueOf(silenceTime) +
-                                        " ,丢弃时间：" + String.valueOf(discardTime);
-                                Log.e("silenceTime", message);
-                                T.showShort(mContext, message);
-                            }
-                        })
-
-
-        );
-    }
+	private void setupNoiseRecorder() {
+		recorder = MsRecorder.wav(
+				new File(voicePath),
+				new AudioRecordConfig.Default(),
+				new PullTransport.Noise()
+						.setOnAudioChunkPulledListener(new PullTransport.OnAudioChunkPulledListener() {
+							@Override
+							public void onAudioChunkPulled(AudioChunk audioChunk) {
+								animateVoice((float) (audioChunk.maxAmplitude() / 200.0));
+							}
+						})
+						.setOnSilenceListener(new PullTransport.OnSilenceListener() {
+							@Override
+							public void onSilence(long silenceTime, long discardTime) {
+								String message = "沉默时间：" + String.valueOf(silenceTime) +
+										" ,丢弃时间：" + String.valueOf(discardTime);
+								Log.e("silenceTime", message);
+								T.showShort(mContext, message);
+							}
+						})
 
 
-    private void animateVoice(float maxPeak) {
-        if (maxPeak > 0.5f) {
-            return;
-        }
-        iv_voice_img.animate()
-                .scaleX(1 + maxPeak)
-                .scaleY(1 + maxPeak)
-                .setDuration(10)
-                .start();
-    }
+		);
+	}
 
-    private void initView() {
-        iv_voice_img = view.findViewById(R.id.iv_voice_img);
-        com_voice_time = view.findViewById(R.id.com_voice_time);
-        bt_start = view.findViewById(R.id.bt_start);
-        bt_pause_resume = view.findViewById(R.id.bt_pause_resume);
-        bt_stop = view.findViewById(R.id.bt_stop);
-        skipSilence = view.findViewById(R.id.skipSilence);
-    }
+
+	private void animateVoice(float maxPeak) {
+		if (maxPeak > 0.5f) {
+			return;
+		}
+		ivVoiceImg.animate()
+				.scaleX(1 + maxPeak)
+				.scaleY(1 + maxPeak)
+				.setDuration(10)
+				.start();
+	}
+
 }

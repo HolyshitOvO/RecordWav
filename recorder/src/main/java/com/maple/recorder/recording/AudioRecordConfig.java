@@ -21,10 +21,7 @@ public interface AudioRecordConfig {
 
     byte bitsPerSample();
 
-    /**
-     * Application should use this default implementation of {@link AudioRecordConfig} to configure
-     * the Audio Record Source.
-     */
+    /** 应用程序应使用此默认实现 {@link AudioRecordConfig} 来配置录音源。 */
     class Default implements AudioRecordConfig {
         private final int audioSource;
         private final int channelPositionMask;
